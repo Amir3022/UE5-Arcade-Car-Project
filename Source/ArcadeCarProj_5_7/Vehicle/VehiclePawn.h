@@ -47,6 +47,8 @@ private:
 	void CheckGrounding();
 	void ApplySuspensionForces();
 	void UpdateAndApplySteering(float deltaSeconds);
+
+	float GetCurrentForwardSpeedKMH();
 	
 public:
 	//Input Related Functions
@@ -83,9 +85,11 @@ protected:
 	float MaxReverseSpeed;
 
 	UPROPERTY(EditAnywhere, Category = "Steering")
-	float MaxSteeringAngle;
+	float MaxSteeringTorque;
 	UPROPERTY(EditAnywhere, Category = "Steering")
 	float SteeringAngularSpeedFrac;
+	UPROPERTY(EditAnywhere, Category = "Steering")
+	FRuntimeFloatCurve SteeringSpeedTorqueCurve;
 
 private:
 	//Vehicle Movement Variables

@@ -30,7 +30,7 @@ AVehiclePawn::AVehiclePawn()
 	MaxForwardSpeed = 200.0f;
 	MaxReverseSpeed = 50.0f;
 
-	MaxSteeringAngle = 30.0f;
+	MaxSteeringTorque = 500000.0f;
 	SteeringAngularSpeedFrac = 1.0f;
 
 	bIsGrounded = false;
@@ -62,7 +62,7 @@ void AVehiclePawn::Tick(float DeltaTime)
 	//Update Steering Value, Apply torque based on the Updated Steering value
 	UpdateAndApplySteering(DeltaTime);
 
-	float ForwardSpeed = FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;
+	float ForwardSpeed = GetCurrentForwardSpeedKMH();
 	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Speed: %f KMH"), ForwardSpeed);
 }
 
@@ -177,6 +177,15 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("Amir, Current Steering Value: %f"), CurrentSteeringValue);
+
+		//Apply steering if the Vehicle is Grounded
+		if (bIsGrounded)
+		{
+			float TorqueValue = CurrentSteeringValue * MaxSteeringTorque * SteeringSpeedTorqueCurve.GetRichCurve()->Eval(FMath::Abs(GetCurrentForwardSpeedKMH()));	//Calculate the Torque strength base on current speed and steering value
+			FVector TorqueLocation = VehicleBody->GetCenterOfMass() + VehicleBody->GetForwardVector() * 150.0f;	//TODO - Get Middle point between front wheelers
+			VehicleBody->AddTorqueInRadians(VehicleBody->GetUpVector() * TorqueValue);
+			UE_LOG(LogTemp, Warning, TEXT("Amir, Current Torque Applied: %s"), *(VehicleBody->GetUpVector() * TorqueValue).ToString());
+		}
 	}
 }
 
@@ -184,7 +193,7 @@ void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
 {
 	if (VehicleBody && bIsGrounded)	//Vehicle must be grounded to apply throttle
 	{
-		float CurrentSpeed = FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;	//Get the Current Speed in KMH
+		float CurrentSpeed = GetCurrentForwardSpeedKMH();
 
 		if (ThrottleForce >= 0)	//Applying Forward Throttle
 		{
@@ -220,6 +229,14 @@ void AVehiclePawn::SetTargetSteeringValue(float InSteeringValue)
 	{
 		TargetSteeringValue = InSteeringValue;
 	}
+}
+
+float AVehiclePawn::GetCurrentForwardSpeedKMH()
+{
+	if (!VehicleBody)
+		return 0.0f;
+
+	return FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;	//Get the Current Speed in KMH
 }
 
 UE_ENABLE_OPTIMIZATION
