@@ -25,11 +25,17 @@ private:
 	void OnForwardFlipInput(const FInputActionValue& InValue);
 	void OnLateralFlipInput(const FInputActionValue& InValue);
 
+	//Vehicle Pawn Functions
+	class AVehiclePawn* GetVehiclePawn();
+
 protected:
 	//Input Config
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
 	class UInputMappingContext* InputMapping;
 	UPROPERTY(EditDefaultsOnly, Category = "Player Input")
 	class UPlayerInputConfig* PlayerInputConfig;
-	
+
+private:
+	//Vehicle Pawn Variables
+	TObjectPtr<class AVehiclePawn> VehiclePawn;
 };

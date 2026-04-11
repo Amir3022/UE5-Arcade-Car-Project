@@ -6,6 +6,7 @@
 #include "Input/PlayerInputConfig.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "ArcadeCarProj_5_7/Vehicle/VehiclePawn.h"
 
 //Setup Input Component Using Enhanced Input Component
 void AVehiclePlayerController::SetupInputComponent()
@@ -33,7 +34,11 @@ void AVehiclePlayerController::SetupInputComponent()
 //Input Handling Functions
 void AVehiclePlayerController::OnThrottleInput(const FInputActionValue& InValue)
 {
-	FVector2D ThrottleValue = InValue.Get<FVector2D>();
+	float ThrottleValue = InValue.Get<float>();
+	if (GetVehiclePawn())
+	{
+		GetVehiclePawn()->ApplyThrottleForce(ThrottleValue);
+	}
 }
 
 void AVehiclePlayerController::OnHandbrakeInput(const FInputActionValue& InValue)
@@ -59,4 +64,13 @@ void AVehiclePlayerController::OnForwardFlipInput(const FInputActionValue& InVal
 void AVehiclePlayerController::OnLateralFlipInput(const FInputActionValue& InValue)
 {
 	FVector2D LateralFlipDirection = InValue.Get<FVector2D>();
+}
+
+AVehiclePawn* AVehiclePlayerController::GetVehiclePawn()
+{
+	if (!VehiclePawn)	//If reference to vehicle pawn isn't valid, cast from current pawn to vehicle pawn
+	{
+		VehiclePawn = Cast<AVehiclePawn>(GetPawn());
+	}
+	return VehiclePawn;
 }

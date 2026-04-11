@@ -21,8 +21,12 @@ AVehiclePawn::AVehiclePawn()
 	GroundCheckTolerance = 5.0f;
 
 	SpringRestLength = 30.0f;
-	SpringStiffness = 4500.0f;
-	SpringDamping = 1500.0f;
+	SpringStiffness = 50000.0f;
+	SpringDamping = 7000.0f;
+
+	ForwardThrottleStrength = 10000.0f;
+	ReverseThrottleStrength = 2000.0f;
+	BrakingThrottleStrength = 500000;
 
 	bIsGrounded = false;
 }
@@ -144,6 +148,32 @@ void AVehiclePawn::ApplySuspensionForces()
 
 				DrawDebugLine(GetWorld(), CurrentWheelTransform.GetLocation(), CurrentWheelTransform.GetLocation() + TotalAppliedSpringForce * 0.05f, FColor::Red, false);
 			}
+		}
+	}
+}
+
+void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
+{
+	if (VehicleBody && bIsGrounded)	//Vehicle must be grounded to apply throttle
+	{
+		if (ThrottleForce >= 0)	//Applying Forward Throttle
+		{
+			FVector ForwardForce = ThrottleForce * ForwardThrottleStrength * VehicleBody->GetForwardVector();
+			VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
+		}
+		else   //Applying Reverse Throttle
+		{
+			FVector ReverseForce;
+			//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
+			if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
+			{
+				ReverseForce = ThrottleForce * BrakingThrottleStrength * VehicleBody->GetForwardVector();
+			}
+			else
+			{
+				ReverseForce = ThrottleForce * ReverseThrottleStrength * VehicleBody->GetForwardVector();
+			}
+			VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 		}
 	}
 }

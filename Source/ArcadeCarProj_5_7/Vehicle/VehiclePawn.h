@@ -46,6 +46,10 @@ private:
 	void InitializeAttachedWheels();
 	void CheckGrounding();
 	void ApplySuspensionForces();
+	
+public:
+	//Input Related Functions
+	void ApplyThrottleForce(float ThrottleValue);
 
 protected:
 	//Vehicle Pawn Components
@@ -64,8 +68,13 @@ protected:
 	float SpringStiffness;
 	UPROPERTY(EditAnywhere, Category = "Suspension")
 	float SpringDamping;
-	UPROPERTY(EditAnywhere, Category = "Suspension")
-	float MaxSpringForce;
+
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float ForwardThrottleStrength;
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float ReverseThrottleStrength;
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float BrakingThrottleStrength;
 
 private:
 	//Vehicle Movement Variables
