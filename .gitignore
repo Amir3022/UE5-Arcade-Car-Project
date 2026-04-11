@@ -79,3 +79,4 @@ Engine/Programs/UnrealBuildTool/*
 # Ignore files added by Finder on Mac
 *.DS_Store
 Packaged/
+enc_temp_folder/
