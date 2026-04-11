@@ -20,21 +20,9 @@ AVehiclePawn::AVehiclePawn()
 void AVehiclePawn::BeginPlay()
 {
 	Super::BeginPlay();
-	//Disable Collision for all Wheel Mesh Components
-	if (VehicleWheelComponents.Num())
-	{
-		for (UStaticMeshComponent* WheelMesh : VehicleWheelComponents)
-		{
-			if (WheelMesh)
-			{
-				WheelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);	//Disable Collision for all wheels
-			}
-		}
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Amir, Wheels not assigned yet!"));
-	}
+	
+	//Initialize Wheel Variables
+	InitializeAttachedWheels();
 
 	//Lower the Center of mass for the main Vehicle Body for better stability
 	VehicleBody->SetCenterOfMass(FVector(0.0f, 0.0f, -30.0f));
@@ -47,10 +35,26 @@ void AVehiclePawn::Tick(float DeltaTime)
 
 }
 
-// Called to bind functionality to input
-void AVehiclePawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+//Initialize variables related to wheels using Attached Wheels Mesh Components set in the blueprint
+void AVehiclePawn::InitializeAttachedWheels()
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	WheelsLocalLocations.Empty();
 
+	//Disable Collision for all Wheel Mesh Components
+	if (VehicleWheelComponents.Num())
+	{
+		for (UStaticMeshComponent* WheelMesh : VehicleWheelComponents)
+		{
+			if (WheelMesh)
+			{
+				WheelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);	//Disable Collision for current Wheel
+				WheelsLocalLocations.Add(WheelMesh->GetRelativeLocation());	//Get wheel relative location to body, add it to array
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Amir, Wheels not assigned yet!"));
+	}
 }
 
