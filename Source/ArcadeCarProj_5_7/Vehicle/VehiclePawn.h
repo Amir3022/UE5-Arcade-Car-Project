@@ -75,6 +75,10 @@ protected:
 	float ReverseThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float BrakingThrottleStrength;
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float MaxForwardSpeed;
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float MaxReverseSpeed;
 
 private:
 	//Vehicle Movement Variables

@@ -27,6 +27,8 @@ AVehiclePawn::AVehiclePawn()
 	ForwardThrottleStrength = 10000.0f;
 	ReverseThrottleStrength = 2000.0f;
 	BrakingThrottleStrength = 500000;
+	MaxForwardSpeed = 200.0f;
+	MaxReverseSpeed = 50.0f;
 
 	bIsGrounded = false;
 }
@@ -53,6 +55,9 @@ void AVehiclePawn::Tick(float DeltaTime)
 
 	//Suspension forces at each wheel base
 	ApplySuspensionForces();
+
+	float ForwardSpeed = FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;
+	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Speed: %f KMH"), ForwardSpeed);
 }
 
 //Called at every update the physics thread
@@ -156,24 +161,32 @@ void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
 {
 	if (VehicleBody && bIsGrounded)	//Vehicle must be grounded to apply throttle
 	{
+		float CurrentSpeed = FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;	//Get the Current Speed in KMH
+
 		if (ThrottleForce >= 0)	//Applying Forward Throttle
 		{
-			FVector ForwardForce = ThrottleForce * ForwardThrottleStrength * VehicleBody->GetForwardVector();
-			VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
+			if (CurrentSpeed < MaxForwardSpeed)
+			{
+				FVector ForwardForce = ThrottleForce * ForwardThrottleStrength * VehicleBody->GetForwardVector();
+				VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
+			}
 		}
 		else   //Applying Reverse Throttle
 		{
-			FVector ReverseForce;
-			//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
-			if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
+			if (CurrentSpeed > (-1 * MaxReverseSpeed))
 			{
-				ReverseForce = ThrottleForce * BrakingThrottleStrength * VehicleBody->GetForwardVector();
+				FVector ReverseForce;
+				//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
+				if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
+				{
+					ReverseForce = ThrottleForce * BrakingThrottleStrength * VehicleBody->GetForwardVector();
+				}
+				else
+				{
+					ReverseForce = ThrottleForce * ReverseThrottleStrength * VehicleBody->GetForwardVector();
+				}
+				VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 			}
-			else
-			{
-				ReverseForce = ThrottleForce * ReverseThrottleStrength * VehicleBody->GetForwardVector();
-			}
-			VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 		}
 	}
 }
