@@ -19,7 +19,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
 	UInputAction* Steer;
 	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
-	UInputAction* HandBreak;
+	UInputAction* HandBrake;
 	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
 	UInputAction* Jump;
 	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")

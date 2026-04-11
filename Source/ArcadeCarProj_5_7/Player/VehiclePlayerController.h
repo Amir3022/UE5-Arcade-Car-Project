@@ -21,6 +21,7 @@ private:
 	void OnThrottleInput(const FInputActionValue& InValue);
 	void OnHandbrakeInput(const FInputActionValue& InValue);
 	void OnSteeringInput(const FInputActionValue& InValue);
+	void OnSteeringInputReleased(const FInputActionValue& InValue);
 	void OnJumpingInput(const FInputActionValue& InValue);
 	void OnForwardFlipInput(const FInputActionValue& InValue);
 	void OnLateralFlipInput(const FInputActionValue& InValue);

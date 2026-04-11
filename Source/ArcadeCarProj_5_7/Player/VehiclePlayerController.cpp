@@ -22,8 +22,9 @@ void AVehiclePlayerController::SetupInputComponent()
 		{
 			//Setup Of Various Input Configs from Player Input Configs to Call certain methods
 			EIC->BindAction(PlayerInputConfig->Throttle, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnThrottleInput);
-			EIC->BindAction(PlayerInputConfig->Steer, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnHandbrakeInput);
-			EIC->BindAction(PlayerInputConfig->HandBreak, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnSteeringInput);
+			EIC->BindAction(PlayerInputConfig->HandBrake, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnHandbrakeInput);
+			EIC->BindAction(PlayerInputConfig->Steer, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnSteeringInput);
+			EIC->BindAction(PlayerInputConfig->Steer, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnSteeringInputReleased);
 			EIC->BindAction(PlayerInputConfig->Jump, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnJumpingInput);
 			EIC->BindAction(PlayerInputConfig->FlipForward, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnForwardFlipInput);
 			EIC->BindAction(PlayerInputConfig->FlipLateral, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnLateralFlipInput);
@@ -50,6 +51,20 @@ void AVehiclePlayerController::OnHandbrakeInput(const FInputActionValue& InValue
 void AVehiclePlayerController::OnSteeringInput(const FInputActionValue& InValue)
 {
 	float SteeringValue = InValue.Get<float>();
+	//Set Target Steering value in Vehicle Pawn
+	if (GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetTargetSteeringValue(SteeringValue);
+	}
+}
+
+void AVehiclePlayerController::OnSteeringInputReleased(const FInputActionValue& InValue)
+{
+	//Set Target Steering value to neutral in Vehicle Pawn
+	if (GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetTargetSteeringValue(0.0f);
+	}
 }
 
 void AVehiclePlayerController::OnJumpingInput(const FInputActionValue& InValue)

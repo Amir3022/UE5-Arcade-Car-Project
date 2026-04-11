@@ -30,6 +30,9 @@ AVehiclePawn::AVehiclePawn()
 	MaxForwardSpeed = 200.0f;
 	MaxReverseSpeed = 50.0f;
 
+	MaxSteeringAngle = 30.0f;
+	SteeringAngularSpeedFrac = 1.0f;
+
 	bIsGrounded = false;
 }
 
@@ -55,6 +58,9 @@ void AVehiclePawn::Tick(float DeltaTime)
 
 	//Suspension forces at each wheel base
 	ApplySuspensionForces();
+
+	//Update Steering Value, Apply torque based on the Updated Steering value
+	UpdateAndApplySteering(DeltaTime);
 
 	float ForwardSpeed = FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;
 	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Speed: %f KMH"), ForwardSpeed);
@@ -157,6 +163,23 @@ void AVehiclePawn::ApplySuspensionForces()
 	}
 }
 
+void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
+{
+	if (VehicleBody)
+	{
+		//Update the Current Steering Value base on SteeringAngular speed and TargetSteeringValue
+		bool IncreasingInRightDirection = CurrentSteeringValue <= TargetSteeringValue;
+		if (CurrentSteeringValue != TargetSteeringValue)
+		{
+			CurrentSteeringValue += (IncreasingInRightDirection ? 1.0f : -1.0f) * deltaSeconds * SteeringAngularSpeedFrac;
+			if ((IncreasingInRightDirection && (CurrentSteeringValue > TargetSteeringValue)) || (!IncreasingInRightDirection && (CurrentSteeringValue < TargetSteeringValue)))
+				CurrentSteeringValue = TargetSteeringValue;
+		}
+
+		UE_LOG(LogTemp, Warning, TEXT("Amir, Current Steering Value: %f"), CurrentSteeringValue);
+	}
+}
+
 void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
 {
 	if (VehicleBody && bIsGrounded)	//Vehicle must be grounded to apply throttle
@@ -188,6 +211,14 @@ void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
 				VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 			}
 		}
+	}
+}
+
+void AVehiclePawn::SetTargetSteeringValue(float InSteeringValue)
+{
+	if (VehicleBody)
+	{
+		TargetSteeringValue = InSteeringValue;
 	}
 }
 

@@ -46,10 +46,12 @@ private:
 	void InitializeAttachedWheels();
 	void CheckGrounding();
 	void ApplySuspensionForces();
+	void UpdateAndApplySteering(float deltaSeconds);
 	
 public:
 	//Input Related Functions
 	void ApplyThrottleForce(float ThrottleValue);
+	void SetTargetSteeringValue(float InSteeringValue);
 
 protected:
 	//Vehicle Pawn Components
@@ -80,8 +82,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float MaxReverseSpeed;
 
+	UPROPERTY(EditAnywhere, Category = "Steering")
+	float MaxSteeringAngle;
+	UPROPERTY(EditAnywhere, Category = "Steering")
+	float SteeringAngularSpeedFrac;
+
 private:
 	//Vehicle Movement Variables
 	TArray<FWheelState> WheelStates;
 	bool bIsGrounded;
+	float TargetSteeringValue;
+	float CurrentSteeringValue;
 };
