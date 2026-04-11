@@ -35,6 +35,7 @@ void AVehiclePlayerController::SetupInputComponent()
 void AVehiclePlayerController::OnThrottleInput(const FInputActionValue& InValue)
 {
 	float ThrottleValue = InValue.Get<float>();
+	//Get the Vehicle Pawn and Apply throttle Force
 	if (GetVehiclePawn())
 	{
 		GetVehiclePawn()->ApplyThrottleForce(ThrottleValue);
@@ -48,7 +49,7 @@ void AVehiclePlayerController::OnHandbrakeInput(const FInputActionValue& InValue
 
 void AVehiclePlayerController::OnSteeringInput(const FInputActionValue& InValue)
 {
-	FVector2D SteeringValue = InValue.Get<FVector2D>();
+	float SteeringValue = InValue.Get<float>();
 }
 
 void AVehiclePlayerController::OnJumpingInput(const FInputActionValue& InValue)
