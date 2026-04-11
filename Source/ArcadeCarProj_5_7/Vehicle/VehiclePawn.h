@@ -20,6 +20,8 @@ protected:
 	virtual void BeginPlay() override;
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
+	//Async Physics Tick, used to update physics calculations at fixed intervals(Determined from project settings)
+	virtual void AsyncPhysicsTickActor(float DeltaTime, float SimTime) override;
 
 private:
 	void InitializeAttachedWheels();

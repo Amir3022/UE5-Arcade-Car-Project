@@ -9,6 +9,9 @@ AVehiclePawn::AVehiclePawn()
  	// Set this pawn to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	//Set this pawn to call AsyncPhysicTickActor() each phyiscs calculation update
+	bAsyncPhysicsTickEnabled = true;
+
 	//Create Vehicle Components
 	VehicleBody = CreateDefaultSubobject<UStaticMeshComponent>(FName("VehicleBody"));
 	VehicleBody->SetSimulatePhysics(true);	//Enable Simulation Physics for the Main vehicle Body to be enabled
@@ -32,6 +35,12 @@ void AVehiclePawn::BeginPlay()
 void AVehiclePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+}
+
+//Called at every update the physics thread
+void AVehiclePawn::AsyncPhysicsTickActor(float DeltaTime, float SimTime)
+{
 
 }
 
