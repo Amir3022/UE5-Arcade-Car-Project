@@ -6,6 +6,13 @@
 #include "GameFramework/Pawn.h"
 #include "VehiclePawn.generated.h"
 
+enum EWheelType : uint8
+{
+	None,
+	FrontWheel,
+	RearWheel,
+};
+
 struct FWheelState
 {
 	FString WheelName;
@@ -13,6 +20,7 @@ struct FWheelState
 	bool bGrounded;
 	float DistanceToGround;
 	FVector ContactPointNormal;
+	EWheelType WheelType;
 
 	FWheelState()
 	{
@@ -21,6 +29,7 @@ struct FWheelState
 		bGrounded = false;
 		DistanceToGround = FLT_MAX;
 		ContactPointNormal = FVector::ZeroVector;
+		WheelType = EWheelType::None;
 	}
 };
 
@@ -46,13 +55,14 @@ private:
 	void InitializeAttachedWheels();
 	void CheckGrounding();
 	void ApplySuspensionForces();
+	void UpdateAndApplyThrottleForce(float deltaSeconds);
 	void UpdateAndApplySteering(float deltaSeconds);
 
 	float GetCurrentForwardSpeedKMH();
 	
 public:
 	//Input Related Functions
-	void ApplyThrottleForce(float ThrottleValue);
+	void SetTargetThrottleInput(float ThrottleValue);
 	void SetTargetSteeringValue(float InSteeringValue);
 
 protected:
@@ -74,6 +84,8 @@ protected:
 	float SpringDamping;
 
 	UPROPERTY(EditAnywhere, Category = "Throttle")
+	float ThrottleValueChangeSpeed;
+	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float ForwardThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float ReverseThrottleStrength;
@@ -85,16 +97,20 @@ protected:
 	float MaxReverseSpeed;
 
 	UPROPERTY(EditAnywhere, Category = "Steering")
-	float MaxSteeringTorque;
+	float MaxSteeringAngleDegrees;
 	UPROPERTY(EditAnywhere, Category = "Steering")
 	float SteeringAngularSpeedFrac;
 	UPROPERTY(EditAnywhere, Category = "Steering")
-	FRuntimeFloatCurve SteeringSpeedTorqueCurve;
+	FRuntimeFloatCurve FrontSpeedGripCurve;
+	UPROPERTY(EditAnywhere, Category = "Steering")
+	FRuntimeFloatCurve RearSpeedGripCurve;
 
 private:
 	//Vehicle Movement Variables
 	TArray<FWheelState> WheelStates;
 	bool bIsGrounded;
+	float TargetThrottleValue;
+	float CurrentThrottleValue;
 	float TargetSteeringValue;
 	float CurrentSteeringValue;
 };

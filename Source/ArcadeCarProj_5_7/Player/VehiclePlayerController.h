@@ -19,6 +19,7 @@ protected:
 private:
 	//Input Handling Functions
 	void OnThrottleInput(const FInputActionValue& InValue);
+	void OnThrottleInputReleased(const FInputActionValue& InValue);
 	void OnHandbrakeInput(const FInputActionValue& InValue);
 	void OnSteeringInput(const FInputActionValue& InValue);
 	void OnSteeringInputReleased(const FInputActionValue& InValue);

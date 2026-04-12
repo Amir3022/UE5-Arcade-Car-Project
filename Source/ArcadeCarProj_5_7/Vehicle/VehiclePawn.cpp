@@ -24,14 +24,15 @@ AVehiclePawn::AVehiclePawn()
 	SpringStiffness = 50000.0f;
 	SpringDamping = 7000.0f;
 
+	ThrottleValueChangeSpeed = 5.0f;
 	ForwardThrottleStrength = 10000.0f;
 	ReverseThrottleStrength = 2000.0f;
 	BrakingThrottleStrength = 500000;
 	MaxForwardSpeed = 200.0f;
 	MaxReverseSpeed = 50.0f;
 
-	MaxSteeringTorque = 500000.0f;
-	SteeringAngularSpeedFrac = 1.0f;
+	MaxSteeringAngleDegrees = 30.0f;
+	SteeringAngularSpeedFrac = 5.0f;
 
 	bIsGrounded = false;
 }
@@ -59,7 +60,10 @@ void AVehiclePawn::Tick(float DeltaTime)
 	//Suspension forces at each wheel base
 	ApplySuspensionForces();
 
-	//Update Steering Value, Apply torque based on the Updated Steering value
+	//Update Throttle Value, Apply Throttle base on the updated Current Throttle Value
+	UpdateAndApplyThrottleForce(DeltaTime);
+
+	//Update Steering Value, Apply Steering Force based on the Updated Steering value
 	UpdateAndApplySteering(DeltaTime);
 
 	float ForwardSpeed = GetCurrentForwardSpeedKMH();
@@ -87,6 +91,16 @@ void AVehiclePawn::InitializeAttachedWheels()
 				FWheelState CurrentWheelState;
 				CurrentWheelState.OffsetTransform = WheelMesh->GetRelativeTransform();//Add Wheel Initial Rel Transform, to be used for all calculations
 				CurrentWheelState.WheelName = WheelMesh->GetName();
+				//Based on the Wheel Mesh name, determine the current wheel type - TODO: Fix this by having the wheel be a separate component
+				if (WheelMesh->GetName().Contains("FL") || WheelMesh->GetName().Contains("FR"))
+				{
+					CurrentWheelState.WheelType = EWheelType::FrontWheel;
+				}
+				else
+				{
+					CurrentWheelState.WheelType = EWheelType::RearWheel;
+				}
+
 				WheelStates.Add(CurrentWheelState);	
 
 				WheelMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);	//Disable Collision for current Wheel
@@ -163,6 +177,53 @@ void AVehiclePawn::ApplySuspensionForces()
 	}
 }
 
+void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
+{
+	if (VehicleBody)
+	{
+		//Update the Current Throttle Value base on ThrottleValueChangeSpeed speed and TargetThrottleValue
+		bool IncreasingInForwardDirection = CurrentThrottleValue <= TargetThrottleValue;
+		if (CurrentThrottleValue != TargetThrottleValue)
+		{
+			CurrentThrottleValue += (IncreasingInForwardDirection ? 1.0f : -1.0f) * deltaSeconds * ThrottleValueChangeSpeed;
+			if ((IncreasingInForwardDirection && (CurrentThrottleValue > TargetThrottleValue)) || (!IncreasingInForwardDirection && (CurrentThrottleValue < TargetThrottleValue)))
+				CurrentThrottleValue = TargetThrottleValue;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("Amir, Current Throttle Value: %f"), CurrentThrottleValue);
+
+		if (bIsGrounded)	//Vehicle must be grounded to apply throttle
+		{
+			float CurrentSpeed = GetCurrentForwardSpeedKMH();
+
+			if (CurrentThrottleValue >= 0)	//Applying Forward Throttle
+			{
+				if (CurrentSpeed < MaxForwardSpeed)
+				{
+					FVector ForwardForce = CurrentThrottleValue * ForwardThrottleStrength * VehicleBody->GetForwardVector();
+					VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
+				}
+			}
+			else   //Applying Reverse Throttle
+			{
+				if (CurrentSpeed > (-1 * MaxReverseSpeed))
+				{
+					FVector ReverseForce;
+					//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
+					if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
+					{
+						ReverseForce = CurrentThrottleValue * BrakingThrottleStrength * VehicleBody->GetForwardVector();
+					}
+					else
+					{
+						ReverseForce = CurrentThrottleValue * ReverseThrottleStrength * VehicleBody->GetForwardVector();
+					}
+					VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
+				}
+			}
+		}
+	}
+}
+
 void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 {
 	if (VehicleBody)
@@ -181,45 +242,16 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 		//Apply steering if the Vehicle is Grounded
 		if (bIsGrounded)
 		{
-			float TorqueValue = CurrentSteeringValue * MaxSteeringTorque * SteeringSpeedTorqueCurve.GetRichCurve()->Eval(FMath::Abs(GetCurrentForwardSpeedKMH()));	//Calculate the Torque strength base on current speed and steering value
-			FVector TorqueLocation = VehicleBody->GetCenterOfMass() + VehicleBody->GetForwardVector() * 150.0f;	//TODO - Get Middle point between front wheelers
-			VehicleBody->AddTorqueInRadians(VehicleBody->GetUpVector() * TorqueValue);
-			UE_LOG(LogTemp, Warning, TEXT("Amir, Current Torque Applied: %s"), *(VehicleBody->GetUpVector() * TorqueValue).ToString());
+			
 		}
 	}
 }
 
-void AVehiclePawn::ApplyThrottleForce(float ThrottleForce)
+void AVehiclePawn::SetTargetThrottleInput(float InThrottleForce)
 {
-	if (VehicleBody && bIsGrounded)	//Vehicle must be grounded to apply throttle
+	if (VehicleBody)
 	{
-		float CurrentSpeed = GetCurrentForwardSpeedKMH();
-
-		if (ThrottleForce >= 0)	//Applying Forward Throttle
-		{
-			if (CurrentSpeed < MaxForwardSpeed)
-			{
-				FVector ForwardForce = ThrottleForce * ForwardThrottleStrength * VehicleBody->GetForwardVector();
-				VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
-			}
-		}
-		else   //Applying Reverse Throttle
-		{
-			if (CurrentSpeed > (-1 * MaxReverseSpeed))
-			{
-				FVector ReverseForce;
-				//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
-				if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
-				{
-					ReverseForce = ThrottleForce * BrakingThrottleStrength * VehicleBody->GetForwardVector();
-				}
-				else
-				{
-					ReverseForce = ThrottleForce * ReverseThrottleStrength * VehicleBody->GetForwardVector();
-				}
-				VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
-			}
-		}
+		TargetThrottleValue = InThrottleForce;
 	}
 }
 

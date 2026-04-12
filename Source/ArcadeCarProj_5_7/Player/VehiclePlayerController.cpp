@@ -22,6 +22,7 @@ void AVehiclePlayerController::SetupInputComponent()
 		{
 			//Setup Of Various Input Configs from Player Input Configs to Call certain methods
 			EIC->BindAction(PlayerInputConfig->Throttle, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnThrottleInput);
+			EIC->BindAction(PlayerInputConfig->Throttle, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnThrottleInputReleased);
 			EIC->BindAction(PlayerInputConfig->HandBrake, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnHandbrakeInput);
 			EIC->BindAction(PlayerInputConfig->Steer, ETriggerEvent::Triggered, this, &AVehiclePlayerController::OnSteeringInput);
 			EIC->BindAction(PlayerInputConfig->Steer, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnSteeringInputReleased);
@@ -36,10 +37,19 @@ void AVehiclePlayerController::SetupInputComponent()
 void AVehiclePlayerController::OnThrottleInput(const FInputActionValue& InValue)
 {
 	float ThrottleValue = InValue.Get<float>();
-	//Get the Vehicle Pawn and Apply throttle Force
+	//Get the Vehicle Pawn and Set Target throttle Force
 	if (GetVehiclePawn())
 	{
-		GetVehiclePawn()->ApplyThrottleForce(ThrottleValue);
+		GetVehiclePawn()->SetTargetThrottleInput(ThrottleValue);
+	}
+}
+
+void AVehiclePlayerController::OnThrottleInputReleased(const FInputActionValue& InValue)
+{
+	//Set Target Throttle value to neutral in Vehicle Pawn
+	if (GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetTargetThrottleInput(0.0f);
 	}
 }
 
