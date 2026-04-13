@@ -101,9 +101,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float ThrottleValueChangeSpeed;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float ForwardThrottleStrength;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float ReverseThrottleStrength;
+	float MaxEngineTorque;
+	UPROPERTY(EditAnywhere, Category = "Throttle")	//X: Speed Fraction, Y: Torque muliplier at current speed fraction
+	FRuntimeFloatCurve TorqueMultiplierCurve;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float BrakingThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")

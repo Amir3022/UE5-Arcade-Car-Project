@@ -26,8 +26,7 @@ AVehiclePawn::AVehiclePawn()
 
 	DriveTrainType = EDriveTrainType::FWD;
 	ThrottleValueChangeSpeed = 5.0f;
-	ForwardThrottleStrength = 10000.0f;
-	ReverseThrottleStrength = 2000.0f;
+	MaxEngineTorque = 2800.0f;
 	BrakingThrottleStrength = 500000;
 	MaxForwardSpeed = 200.0f;
 	MaxReverseSpeed = 50.0f;
@@ -200,20 +199,25 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 		if (bIsGrounded)	//Vehicle must be grounded to apply throttle
 		{
 			float CurrentSpeed = GetCurrentForwardSpeedKMH();
-
-			if (CurrentThrottleValue >= 0)	//Applying Forward Throttle
+			float SpeedFraction = FMath::Clamp(CurrentSpeed / MaxForwardSpeed, 0.0f, 1.0f);
+			//Sample Torque Curve to get torque multiplier at speed fraction
+			float TorqueMultiplier = TorqueMultiplierCurve.GetRichCurve()->Eval(SpeedFraction);
+			float CurrentTorque = MaxEngineTorque * CurrentThrottleValue * TorqueMultiplier;
+			//Approx convert Torque to Force (TODO - Change the Magic number with a variable that can be tuned)
+			float ThrottleForce = CurrentTorque * 8.5f;
+			if (CurrentThrottleValue >= 0)	//Apply force if only we are below the Max Forward Speed
 			{
 				if (CurrentSpeed < MaxForwardSpeed)
 				{
-					float ForwardForce = CurrentThrottleValue * ForwardThrottleStrength;
+					float ForwardForce = ThrottleForce;
 					DistributeForceToDrivingWheels(ForwardForce);
 				}
 			}
-			else   //Applying Reverse Throttle
+			else   //Apply force if only we are below the Max Reverse Speed
 			{
 				if (CurrentSpeed > (-1 * MaxReverseSpeed))
 				{
-					float ReverseForce = CurrentThrottleValue * ReverseThrottleStrength;
+					float ReverseForce = ThrottleForce;
 					DistributeForceToDrivingWheels(ReverseForce);
 				}
 			}
