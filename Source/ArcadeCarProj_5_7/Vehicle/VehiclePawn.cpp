@@ -283,6 +283,8 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 		//Apply steering if the Vehicle is Grounded
 		if (bIsGrounded)
 		{
+			//Get Current Vehicle Speed in KMH
+			float CurrentSpeedFactor = GetCurrentForwardSpeedKMH() / (GetCurrentForwardSpeedKMH() >= 0.0f ? MaxForwardSpeed : MaxReverseSpeed);
 			//Apply Steering at each wheel location
 			for (const FWheelState& CurrentWheel : WheelStates)
 			{
@@ -300,6 +302,10 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 					//Get Wheel velocity in the direction of the steering(Wheel Calculated right vector)
 					float SteeringVelocity = WheelVelocity.Dot(WheelRightVector);
 					float DesiredVelocityChange = -SteeringVelocity;
+					if (CurrentWheel.WheelType == EWheelType::FrontWheel)
+						DesiredVelocityChange *= FrontSpeedGripCurve.GetRichCurve()->Eval(CurrentSpeedFactor);
+					else if(CurrentWheel.WheelType == EWheelType::RearWheel)
+						DesiredVelocityChange *= RearSpeedGripCurve.GetRichCurve()->Eval(CurrentSpeedFactor);
 					//Force to be applied at wheel location to do steering
 					FVector ForceToApply = DesiredVelocityChange / deltaSeconds * VehicleBody->GetMass() / WheelStates.Num() * WheelRightVector;
 					//Apply Force to Vehicle body at Wheel Location
