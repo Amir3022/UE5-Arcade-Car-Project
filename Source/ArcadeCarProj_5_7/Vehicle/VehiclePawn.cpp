@@ -207,7 +207,6 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 				{
 					float ForwardForce = CurrentThrottleValue * ForwardThrottleStrength;
 					DistributeForceToDrivingWheels(ForwardForce);
-					//VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
 				}
 			}
 			else   //Applying Reverse Throttle
@@ -216,7 +215,6 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 				{
 					float ReverseForce = CurrentThrottleValue * ReverseThrottleStrength;
 					DistributeForceToDrivingWheels(ReverseForce);
-					//VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 				}
 			}
 		}
@@ -269,6 +267,18 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 		}
 
 		UE_LOG(LogTemp, Warning, TEXT("Amir, Current Steering Value: %f"), CurrentSteeringValue);
+
+		//Apply steering wheel visuals by rotating the front wheels with steering angle
+		float SteeringAngle = CurrentSteeringValue * MaxSteeringAngleDegrees;
+		for (int32 i = 0; i < VehicleWheelComponents.Num(); i++)
+		{
+			if (VehicleWheelComponents[i] && WheelStates[i].WheelType == EWheelType::FrontWheel)
+			{
+				FRotator NewWheelLocalRotation = VehicleWheelComponents[i]->GetRelativeRotation();
+				NewWheelLocalRotation.Yaw = SteeringAngle;
+				VehicleWheelComponents[i]->SetRelativeRotation(NewWheelLocalRotation);
+			}
+		}
 
 		//Apply steering if the Vehicle is Grounded
 		if (bIsGrounded)
