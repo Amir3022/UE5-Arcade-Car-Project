@@ -47,7 +47,7 @@ void AVehiclePawn::BeginPlay()
 	InitializeAttachedWheels();
 
 	//Lower the Center of mass for the main Vehicle Body for better stability
-	VehicleBody->SetCenterOfMass(FVector(0.0f, 0.0f, -57.0f));	//TODO - Make this calculated instead of being a fixed value
+	VehicleBody->SetCenterOfMass(FVector(0.0f, 0.0f, -55.0f));	//TODO - Make this calculated instead of being a fixed value
 }
 
 // Called every frame
@@ -246,8 +246,6 @@ void AVehiclePawn::DistributeForceToDrivingWheels(float ThrottleForce)
 				FVector WheelForwardVector = FVector::CrossProduct(VehicleBody->GetRightVector(),  DrivingWheel.ContactPointNormal);
 				FVector ActingForce = WheelForwardVector * ForcePerWheel;
 				VehicleBody->AddForceAtLocation(ActingForce, DrivingWheelLocation);
-				DrawDebugLine(GetWorld(), DrivingWheelLocation, DrivingWheelLocation + ActingForce, FColor::Green, false);
-				DrawDebugSphere(GetWorld(), DrivingWheelLocation, 10.0f, 16, FColor::Green, false, -1.0f, 10);
 			}
 		}
 	}
@@ -277,13 +275,40 @@ void AVehiclePawn::UpdateAndApplySteering(float deltaSeconds)
 				FRotator NewWheelLocalRotation = VehicleWheelComponents[i]->GetRelativeRotation();
 				NewWheelLocalRotation.Yaw = SteeringAngle;
 				VehicleWheelComponents[i]->SetRelativeRotation(NewWheelLocalRotation);
+				//Set Steering Angle in the wheel state of front wheels
+				WheelStates[i].SteeringAngle = SteeringAngle;
 			}
 		}
 
 		//Apply steering if the Vehicle is Grounded
 		if (bIsGrounded)
 		{
-			
+			//Apply Steering at each wheel location
+			for (const FWheelState& CurrentWheel : WheelStates)
+			{
+				if (CurrentWheel.bGrounded)
+				{
+					FVector CurrentWheelLocation = (CurrentWheel.OffsetTransform * VehicleBody->GetComponentTransform()).GetLocation();
+					//Get forward movement direction based on wheel contact normal on ground
+					FVector WheelForwardVector = FVector::CrossProduct(VehicleBody->GetRightVector(), CurrentWheel.ContactPointNormal);
+					///Rotate the Forward vector around contact normal with Steering angle
+					WheelForwardVector = WheelForwardVector.RotateAngleAxis(CurrentWheel.SteeringAngle, CurrentWheel.ContactPointNormal);
+					//Get Right Vector Based on new forward vector and contact point normal
+					FVector WheelRightVector = FVector::CrossProduct(CurrentWheel.ContactPointNormal, WheelForwardVector);
+					//Get Wheel Velocity
+					FVector WheelVelocity = VehicleBody->GetPhysicsLinearVelocityAtPoint(CurrentWheelLocation);
+					//Get Wheel velocity in the direction of the steering(Wheel Calculated right vector)
+					float SteeringVelocity = WheelVelocity.Dot(WheelRightVector);
+					float DesiredVelocityChange = -SteeringVelocity;
+					//Force to be applied at wheel location to do steering
+					FVector ForceToApply = DesiredVelocityChange / deltaSeconds * VehicleBody->GetMass() / WheelStates.Num() * WheelRightVector;
+					//Apply Force to Vehicle body at Wheel Location
+					VehicleBody->AddForceAtLocation(ForceToApply, CurrentWheelLocation);
+
+					DrawDebugLine(GetWorld(), CurrentWheelLocation, CurrentWheelLocation + WheelForwardVector * 100.0f, FColor::Blue, false, -1.0f, 10);
+					DrawDebugLine(GetWorld(), CurrentWheelLocation, CurrentWheelLocation + WheelRightVector * 100.0f, FColor::Green, false, -1.0f, 10);
+				}
+			}
 		}
 	}
 }

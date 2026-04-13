@@ -28,6 +28,7 @@ struct FWheelState
 	bool bGrounded;
 	float DistanceToGround;
 	FVector ContactPointNormal;
+	float SteeringAngle;
 	EWheelType WheelType;
 	bool bDrivingWheel;
 
@@ -38,6 +39,7 @@ struct FWheelState
 		bGrounded = false;
 		DistanceToGround = FLT_MAX;
 		ContactPointNormal = FVector::ZeroVector;
+		SteeringAngle = 0.0f;
 		WheelType = EWheelType::None;
 		bDrivingWheel = false;
 	}
