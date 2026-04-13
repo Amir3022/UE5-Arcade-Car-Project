@@ -214,16 +214,7 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 			{
 				if (CurrentSpeed > (-1 * MaxReverseSpeed))
 				{
-					float ReverseForce;
-					//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
-					if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
-					{
-						ReverseForce = CurrentThrottleValue * BrakingThrottleStrength;
-					}
-					else
-					{
-						ReverseForce = CurrentThrottleValue * ReverseThrottleStrength;
-					}
+					float ReverseForce = CurrentThrottleValue * ReverseThrottleStrength;
 					DistributeForceToDrivingWheels(ReverseForce);
 					//VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 				}
