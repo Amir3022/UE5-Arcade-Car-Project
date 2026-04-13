@@ -6,6 +6,14 @@
 #include "GameFramework/Pawn.h"
 #include "VehiclePawn.generated.h"
 
+UENUM(BlueprintType)
+enum EDriveTrainType : uint8
+{
+	FWD, 
+	RWD,
+	AWD,
+};
+
 enum EWheelType : uint8
 {
 	None,
@@ -21,6 +29,7 @@ struct FWheelState
 	float DistanceToGround;
 	FVector ContactPointNormal;
 	EWheelType WheelType;
+	bool bDrivingWheel;
 
 	FWheelState()
 	{
@@ -30,6 +39,7 @@ struct FWheelState
 		DistanceToGround = FLT_MAX;
 		ContactPointNormal = FVector::ZeroVector;
 		WheelType = EWheelType::None;
+		bDrivingWheel = false;
 	}
 };
 
@@ -56,6 +66,7 @@ private:
 	void CheckGrounding();
 	void ApplySuspensionForces();
 	void UpdateAndApplyThrottleForce(float deltaSeconds);
+	void DistributeForceToDrivingWheels(float ThrottleForce);
 	void UpdateAndApplySteering(float deltaSeconds);
 
 	float GetCurrentForwardSpeedKMH();
@@ -83,6 +94,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Suspension")
 	float SpringDamping;
 
+	UPROPERTY(EditAnywhere, Category = "Throttle")
+	TEnumAsByte<EDriveTrainType> DriveTrainType;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float ThrottleValueChangeSpeed;
 	UPROPERTY(EditAnywhere, Category = "Throttle")

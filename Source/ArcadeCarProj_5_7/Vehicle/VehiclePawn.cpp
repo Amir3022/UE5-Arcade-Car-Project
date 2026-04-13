@@ -24,6 +24,7 @@ AVehiclePawn::AVehiclePawn()
 	SpringStiffness = 50000.0f;
 	SpringDamping = 7000.0f;
 
+	DriveTrainType = EDriveTrainType::FWD;
 	ThrottleValueChangeSpeed = 5.0f;
 	ForwardThrottleStrength = 10000.0f;
 	ReverseThrottleStrength = 2000.0f;
@@ -46,7 +47,7 @@ void AVehiclePawn::BeginPlay()
 	InitializeAttachedWheels();
 
 	//Lower the Center of mass for the main Vehicle Body for better stability
-	VehicleBody->SetCenterOfMass(FVector(0.0f, 0.0f, -60.0f));
+	VehicleBody->SetCenterOfMass(FVector(0.0f, 0.0f, -57.0f));	//TODO - Make this calculated instead of being a fixed value
 }
 
 // Called every frame
@@ -68,6 +69,7 @@ void AVehiclePawn::Tick(float DeltaTime)
 
 	float ForwardSpeed = GetCurrentForwardSpeedKMH();
 	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Speed: %f KMH"), ForwardSpeed);
+	DrawDebugSphere(GetWorld(), VehicleBody->GetCenterOfMass(), 10.0f, 16, FColor::Blue, false, -1.0f, 10);
 }
 
 //Called at every update the physics thread
@@ -95,10 +97,14 @@ void AVehiclePawn::InitializeAttachedWheels()
 				if (WheelMesh->GetName().Contains("FL") || WheelMesh->GetName().Contains("FR"))
 				{
 					CurrentWheelState.WheelType = EWheelType::FrontWheel;
+					if (DriveTrainType == EDriveTrainType::FWD || DriveTrainType == EDriveTrainType::AWD)
+						CurrentWheelState.bDrivingWheel = true;
 				}
 				else
 				{
 					CurrentWheelState.WheelType = EWheelType::RearWheel;
+					if (DriveTrainType == EDriveTrainType::RWD || DriveTrainType == EDriveTrainType::AWD)
+						CurrentWheelState.bDrivingWheel = true;
 				}
 
 				WheelStates.Add(CurrentWheelState);	
@@ -199,26 +205,60 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 			{
 				if (CurrentSpeed < MaxForwardSpeed)
 				{
-					FVector ForwardForce = CurrentThrottleValue * ForwardThrottleStrength * VehicleBody->GetForwardVector();
-					VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
+					float ForwardForce = CurrentThrottleValue * ForwardThrottleStrength;
+					DistributeForceToDrivingWheels(ForwardForce);
+					//VehicleBody->AddForceAtLocation(ForwardForce, VehicleBody->GetCenterOfMass());
 				}
 			}
 			else   //Applying Reverse Throttle
 			{
 				if (CurrentSpeed > (-1 * MaxReverseSpeed))
 				{
-					FVector ReverseForce;
+					float ReverseForce;
 					//Get Forward Velocity, if larger than a small maring apply braking power from reverse input
 					if (FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) > 50.0f)
 					{
-						ReverseForce = CurrentThrottleValue * BrakingThrottleStrength * VehicleBody->GetForwardVector();
+						ReverseForce = CurrentThrottleValue * BrakingThrottleStrength;
 					}
 					else
 					{
-						ReverseForce = CurrentThrottleValue * ReverseThrottleStrength * VehicleBody->GetForwardVector();
+						ReverseForce = CurrentThrottleValue * ReverseThrottleStrength;
 					}
-					VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
+					DistributeForceToDrivingWheels(ReverseForce);
+					//VehicleBody->AddForceAtLocation(ReverseForce, VehicleBody->GetCenterOfMass());
 				}
+			}
+		}
+	}
+}
+
+void AVehiclePawn::DistributeForceToDrivingWheels(float ThrottleForce)
+{
+	if (VehicleBody)
+	{
+		//Get all Driving Wheels
+		TArray<FWheelState> DrivingWheels;
+		for (FWheelState CurrentWheelState : WheelStates)
+		{
+			if (CurrentWheelState.bDrivingWheel)
+				DrivingWheels.Add(CurrentWheelState);
+		}
+
+		//Distribute force on all driving wheels
+		float ForcePerWheel = ThrottleForce / DrivingWheels.Num();
+
+		//Apply force at each wheel location
+		for (const FWheelState& DrivingWheel : DrivingWheels)
+		{
+			if (DrivingWheel.bGrounded)
+			{
+				FVector DrivingWheelLocation = (DrivingWheel.OffsetTransform * VehicleBody->GetComponentTransform()).GetLocation();
+				//Get forward movement direction based on wheel contact normal on ground
+				FVector WheelForwardVector = FVector::CrossProduct(VehicleBody->GetRightVector(),  DrivingWheel.ContactPointNormal);
+				FVector ActingForce = WheelForwardVector * ForcePerWheel;
+				VehicleBody->AddForceAtLocation(ActingForce, DrivingWheelLocation);
+				DrawDebugLine(GetWorld(), DrivingWheelLocation, DrivingWheelLocation + ActingForce, FColor::Green, false);
+				DrawDebugSphere(GetWorld(), DrivingWheelLocation, 10.0f, 16, FColor::Green, false, -1.0f, 10);
 			}
 		}
 	}
