@@ -27,7 +27,12 @@ AVehiclePawn::AVehiclePawn()
 	DriveTrainType = EDriveTrainType::FWD;
 	ThrottleValueChangeSpeed = 5.0f;
 	MaxEngineTorque = 2800.0f;
-	BrakingThrottleStrength = 500000;
+	RevRate = 12.0f;
+	IdleRPM = 900.0f;
+	RedlineRPM = 7200.0f;
+	FinalDriveTrainRatio = 3.9f;
+	DriveTrainEfficiency = 0.9f;
+	StandardWheelRadius = 50.f;
 	MaxForwardSpeed = 200.0f;
 	MaxReverseSpeed = 50.0f;
 
@@ -35,6 +40,7 @@ AVehiclePawn::AVehiclePawn()
 	SteeringAngularSpeedFrac = 5.0f;
 
 	bIsGrounded = false;
+	CurrentTransmissionMode = ETransmissionMode::Neutral;
 }
 
 // Called when the game starts or when spawned
@@ -54,20 +60,30 @@ void AVehiclePawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	UE_LOG(LogTemp, Warning, TEXT("Amir"));
+
 	//Check for Each wheel and vehicle grounding
 	CheckGrounding();
 
 	//Suspension forces at each wheel base
 	ApplySuspensionForces();
 
-	//Update Throttle Value, Apply Throttle base on the updated Current Throttle Value
-	UpdateAndApplyThrottleForce(DeltaTime);
+	//Update Throttle Value, Rev Engine RPM on the updated Current Throttle Value
+	UpdateThrottle(DeltaTime);
+
+	//Update Current Engine RPM Based on the Current Transmission Mode
+	UpdateEngineRPM(DeltaTime);
+
+	//Use EngineRPM to apply Torque to the wheels and move the vehicle
+	ApplyEngineTorque();
 
 	//Update Steering Value, Apply Steering Force based on the Updated Steering value
 	UpdateAndApplySteering(DeltaTime);
 
 	float ForwardSpeed = GetCurrentForwardSpeedKMH();
+	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Transmission Mode: %i"), (int32)CurrentTransmissionMode);
 	UE_LOG(LogTemp, Warning, TEXT("Amir, Current Speed: %f KMH"), ForwardSpeed);
+	UE_LOG(LogTemp, Warning, TEXT("Amir, Current RPM: %f"), GetCurrentRPM());
 	DrawDebugSphere(GetWorld(), VehicleBody->GetCenterOfMass(), 10.0f, 16, FColor::Blue, false, -1.0f, 10);
 }
 
@@ -182,7 +198,7 @@ void AVehiclePawn::ApplySuspensionForces()
 	}
 }
 
-void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
+void AVehiclePawn::UpdateThrottle(float deltaSeconds)
 {
 	if (VehicleBody)
 	{
@@ -195,31 +211,62 @@ void AVehiclePawn::UpdateAndApplyThrottleForce(float deltaSeconds)
 				CurrentThrottleValue = TargetThrottleValue;
 		}
 		UE_LOG(LogTemp, Warning, TEXT("Amir, Current Throttle Value: %f"), CurrentThrottleValue);
+	}
+}
 
-		if (bIsGrounded)	//Vehicle must be grounded to apply throttle
+void AVehiclePawn::UpdateEngineRPM(float deltaSeconds)
+{
+	if (VehicleBody)
+	{
+		switch (CurrentTransmissionMode)
 		{
-			float CurrentSpeed = GetCurrentForwardSpeedKMH();
-			float SpeedFraction = FMath::Clamp(CurrentSpeed / MaxForwardSpeed, 0.0f, 1.0f);
-			//Sample Torque Curve to get torque multiplier at speed fraction
-			float TorqueMultiplier = TorqueMultiplierCurve.GetRichCurve()->Eval(SpeedFraction);
-			float CurrentTorque = MaxEngineTorque * CurrentThrottleValue * TorqueMultiplier;
-			//Approx convert Torque to Force (TODO - Change the Magic number with a variable that can be tuned)
-			float ThrottleForce = CurrentTorque * 8.5f;
-			if (CurrentThrottleValue >= 0)	//Apply force if only we are below the Max Forward Speed
+		case ETransmissionMode::Neutral:	//On Neutral, the engine should Rev up with Throttle Input
+		{
+			CurrentRPM = FMath::Clamp(CurrentRPM + (CurrentThrottleValue * RevRate - EngineFrictionRate) * deltaSeconds, IdleRPM, RedlineRPM);
+			break;
+		}
+		case ETransmissionMode::Drive:	//On Drive, the RPM is dectated by the current wheel rotation speed and the rotation transmitted throught Transmission and Differential
+		{
+			if (GearRatios.IsValidIndex(CurrentGearIndex))
 			{
-				if (CurrentSpeed < MaxForwardSpeed)
-				{
-					float ForwardForce = ThrottleForce;
-					DistributeForceToDrivingWheels(ForwardForce);
-				}
+				float CurrentSpeedCMS = GetCurrentForwardSpeedKMH() * (5.0f / 18.0f) * 100.0f;
+				float WheelCircumference = 2.0f * UE_PI * StandardWheelRadius;
+				float WheelRPM = (CurrentSpeedCMS / WheelCircumference) * 60.0f;
+				CurrentRPM = FMath::Clamp(WheelRPM * FinalDriveTrainRatio * GearRatios[CurrentGearIndex], IdleRPM, RedlineRPM);
 			}
-			else   //Apply force if only we are below the Max Reverse Speed
+			break;
+		}
+		}
+	}
+}
+
+void AVehiclePawn::ApplyEngineTorque()
+{
+	if (VehicleBody && IsTransmissionEngaged())	//Vehicle must be grounded to apply throttle
+	{
+		float CurrentSpeed = GetCurrentForwardSpeedKMH();
+		//Use Current RPM to Get Engine Torque from Curve
+		float CurrentEngineTorque = RPMTorqueCurve.GetRichCurve()->Eval(GetCurrentRPM()) * FMath::Abs(CurrentThrottleValue);
+		//Get Wheel Axel Torque by Multiplying the Engine Torque by the Current Gear Ratio and Final Drive Train Ration
+		float WheelsAxelTorque = CurrentEngineTorque * GearRatios[CurrentGearIndex] * FinalDriveTrainRatio * DriveTrainEfficiency;
+		//Get the Totatl Force applied by the Engine to the wheels
+		float LinearEngineForce = WheelsAxelTorque / (StandardWheelRadius / 100.0f) * 100.0f;
+		UE_LOG(LogTemp, Warning, TEXT("Amir, Applied Linear Force: %f, Engine Torque: %f, Wheel Axel Torque: %f"), LinearEngineForce, CurrentEngineTorque, WheelsAxelTorque);
+
+		if (CurrentThrottleValue >= 0)	//Apply force if only we are below the Max Forward Speed
+		{
+			if (CurrentSpeed < MaxForwardSpeed)
 			{
-				if (CurrentSpeed > (-1 * MaxReverseSpeed))
-				{
-					float ReverseForce = ThrottleForce;
-					DistributeForceToDrivingWheels(ReverseForce);
-				}
+				float ForwardForce = LinearEngineForce;
+				DistributeForceToDrivingWheels(ForwardForce);
+			}
+		}
+		else   //Apply force if only we are below the Max Reverse Speed
+		{
+			if (CurrentSpeed > (-1 * MaxReverseSpeed))
+			{
+				float ReverseForce = LinearEngineForce;
+				DistributeForceToDrivingWheels(ReverseForce);
 			}
 		}
 	}
@@ -345,6 +392,19 @@ float AVehiclePawn::GetCurrentForwardSpeedKMH()
 		return 0.0f;
 
 	return FVector::DotProduct(VehicleBody->GetForwardVector(), VehicleBody->GetPhysicsLinearVelocity()) / 100.0f * 18.0f / 5.0f;	//Get the Current Speed in KMH
+}
+
+float AVehiclePawn::GetCurrentRPM()
+{
+	if (!VehicleBody)
+		return 0.0f;
+
+	return CurrentRPM;
+}
+
+bool AVehiclePawn::IsTransmissionEngaged()
+{
+	return bIsGrounded && GearRatios.IsValidIndex(CurrentGearIndex) && (CurrentTransmissionMode == ETransmissionMode::Drive || CurrentTransmissionMode == ETransmissionMode::Reverse);
 }
 
 UE_ENABLE_OPTIMIZATION

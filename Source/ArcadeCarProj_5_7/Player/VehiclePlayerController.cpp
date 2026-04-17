@@ -29,6 +29,12 @@ void AVehiclePlayerController::SetupInputComponent()
 			EIC->BindAction(PlayerInputConfig->Jump, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnJumpingInput);
 			EIC->BindAction(PlayerInputConfig->FlipForward, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnForwardFlipInput);
 			EIC->BindAction(PlayerInputConfig->FlipLateral, ETriggerEvent::Completed, this, &AVehiclePlayerController::OnLateralFlipInput);
+			EIC->BindAction(PlayerInputConfig->SetNeutralTransmission, ETriggerEvent::Started, this, &AVehiclePlayerController::OnSetNeutralTransmission);
+			EIC->BindAction(PlayerInputConfig->SetDriveTransmission, ETriggerEvent::Started, this, &AVehiclePlayerController::OnSetDriveTransmission);
+			EIC->BindAction(PlayerInputConfig->SetReverseTransmission, ETriggerEvent::Started, this, &AVehiclePlayerController::OnSetReverseTransmission);
+			EIC->BindAction(PlayerInputConfig->SetParkTransmission, ETriggerEvent::Started, this, &AVehiclePlayerController::OnSetParkTransmission);
+			EIC->BindAction(PlayerInputConfig->GearUpShift, ETriggerEvent::Started, this, &AVehiclePlayerController::OnGearUpShift);
+			EIC->BindAction(PlayerInputConfig->GearDownShift, ETriggerEvent::Started, this, &AVehiclePlayerController::OnGearDownShift);
 		}
 	}
 }
@@ -90,6 +96,60 @@ void AVehiclePlayerController::OnForwardFlipInput(const FInputActionValue& InVal
 void AVehiclePlayerController::OnLateralFlipInput(const FInputActionValue& InValue)
 {
 	FVector2D LateralFlipDirection = InValue.Get<FVector2D>();
+}
+
+void AVehiclePlayerController::OnSetNeutralTransmission(const FInputActionValue& InValue)
+{
+	bool bSetPressed = InValue.Get<bool>();
+	if (bSetPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetCurrentTransmissionMode(ETransmissionMode::Neutral);
+	}
+}
+
+void AVehiclePlayerController::OnSetDriveTransmission(const FInputActionValue& InValue)
+{
+	bool bSetPressed = InValue.Get<bool>();
+	if (bSetPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetCurrentTransmissionMode(ETransmissionMode::Drive);
+	}
+}
+
+void AVehiclePlayerController::OnSetReverseTransmission(const FInputActionValue& InValue)
+{
+	bool bSetPressed = InValue.Get<bool>();
+	if (bSetPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetCurrentTransmissionMode(ETransmissionMode::Reverse);
+	}
+}
+
+void AVehiclePlayerController::OnSetParkTransmission(const FInputActionValue& InValue)
+{
+	bool bSetPressed = InValue.Get<bool>();
+	if (bSetPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->SetCurrentTransmissionMode(ETransmissionMode::Park);
+	}
+}
+
+void AVehiclePlayerController::OnGearUpShift(const FInputActionValue& InValue)
+{
+	bool bShfitPressed = InValue.Get<bool>();
+	if (bShfitPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->DoGearUpShift();
+	}
+}
+
+void AVehiclePlayerController::OnGearDownShift(const FInputActionValue& InValue)
+{
+	bool bShfitPressed = InValue.Get<bool>();
+	if (bShfitPressed && GetVehiclePawn())
+	{
+		GetVehiclePawn()->DoGearDownShift();
+	}
 }
 
 AVehiclePawn* AVehiclePlayerController::GetVehiclePawn()

@@ -26,6 +26,12 @@ private:
 	void OnJumpingInput(const FInputActionValue& InValue);
 	void OnForwardFlipInput(const FInputActionValue& InValue);
 	void OnLateralFlipInput(const FInputActionValue& InValue);
+	void OnSetNeutralTransmission(const FInputActionValue& InValue);
+	void OnSetDriveTransmission(const FInputActionValue& InValue);
+	void OnSetReverseTransmission(const FInputActionValue& InValue);
+	void OnSetParkTransmission(const FInputActionValue& InValue);
+	void OnGearUpShift(const FInputActionValue& InValue);
+	void OnGearDownShift(const FInputActionValue& InValue);
 
 	//Vehicle Pawn Functions
 	class AVehiclePawn* GetVehiclePawn();

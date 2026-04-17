@@ -26,4 +26,16 @@ public:
 	UInputAction* FlipForward;
 	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
 	UInputAction* FlipLateral;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* SetNeutralTransmission;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* SetDriveTransmission;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* SetReverseTransmission;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* SetParkTransmission;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* GearUpShift;
+	UPROPERTY(EditDefaultsOnly, Category = "Input Mapping")
+	UInputAction* GearDownShift;
 };
