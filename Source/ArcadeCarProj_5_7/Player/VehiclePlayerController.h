@@ -34,7 +34,7 @@ private:
 	void OnGearDownShift(const FInputActionValue& InValue);
 
 	//Vehicle Pawn Functions
-	class AVehiclePawn* GetVehiclePawn();
+	class IVehicleInterface* GetVehiclePawn();
 
 protected:
 	//Input Config
@@ -45,5 +45,5 @@ protected:
 
 private:
 	//Vehicle Pawn Variables
-	TObjectPtr<class AVehiclePawn> VehiclePawn;
+	class IVehicleInterface* VehiclePawn;
 };

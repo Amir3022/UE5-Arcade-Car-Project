@@ -6,7 +6,7 @@
 #include "Input/PlayerInputConfig.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "ArcadeCarProj_5_7/Vehicle/VehiclePawn.h"
+#include "ArcadeCarProj_5_7/Vehicle/VehicleInterface.h"
 
 //Setup Input Component Using Enhanced Input Component
 void AVehiclePlayerController::SetupInputComponent()
@@ -152,11 +152,11 @@ void AVehiclePlayerController::OnGearDownShift(const FInputActionValue& InValue)
 	}
 }
 
-AVehiclePawn* AVehiclePlayerController::GetVehiclePawn()
+IVehicleInterface* AVehiclePlayerController::GetVehiclePawn()
 {
 	if (!VehiclePawn)	//If reference to vehicle pawn isn't valid, cast from current pawn to vehicle pawn
 	{
-		VehiclePawn = Cast<AVehiclePawn>(GetPawn());
+		VehiclePawn = Cast<IVehicleInterface>(GetPawn());
 	}
 	return VehiclePawn;
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "VehicleInterface.h"
 #include "VehiclePawn.generated.h"
 
 UENUM(BlueprintType)
@@ -19,14 +20,6 @@ enum EWheelType : uint8
 	None,
 	FrontWheel,
 	RearWheel,
-};
-
-enum ETransmissionMode
-{
-	Neutral,
-	Drive,
-	Reverse,
-	Park,
 };
 
 struct FWheelState
@@ -54,7 +47,7 @@ struct FWheelState
 };
 
 UCLASS()
-class ARCADECARPROJ_5_7_API AVehiclePawn : public APawn
+class ARCADECARPROJ_5_7_API AVehiclePawn : public APawn, public IVehicleInterface
 {
 	GENERATED_BODY()
 
@@ -84,15 +77,17 @@ private:
 
 public:
 	//Input Related Functions
-	void SetTargetThrottleInput(float ThrottleValue);
-	void SetTargetSteeringValue(float InSteeringValue);
-	void SetCurrentTransmissionMode(ETransmissionMode InTransmissionMode) { CurrentTransmissionMode = InTransmissionMode; }
-	void DoGearUpShift()
+	virtual void SetTargetThrottleInput(float ThrottleValue) override;
+	virtual void SetTargetSteeringValue(float InSteeringValue) override;
+	virtual void SetUsingHandbrake(bool InUseHandbrake) override { bApplyHandbrake = InUseHandbrake; }
+	virtual void SetCurrentTransmissionMode(ETransmissionMode InTransmissionMode) override { CurrentTransmissionMode = InTransmissionMode; }
+	virtual void DoGearUpShift() override
 	{
 		if (CurrentTransmissionMode == ETransmissionMode::Drive && CurrentGearIndex < (GearRatios.Num() - 1))
 			CurrentGearIndex++;
 	}
-	void DoGearDownShift() {
+	virtual void DoGearDownShift() override
+	{
 		if (CurrentTransmissionMode == ETransmissionMode::Drive && CurrentGearIndex > 0)
 			CurrentGearIndex--;
 	}
@@ -168,6 +163,7 @@ private:
 	float CurrentThrottleValue;
 	float TargetSteeringValue;
 	float CurrentSteeringValue;
+	bool bApplyHandbrake;
 	float CurrentRPM;
 	int32 CurrentGearIndex;
 };
