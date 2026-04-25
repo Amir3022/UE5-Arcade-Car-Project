@@ -4,49 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
+#include "ArcadeCarProj_5_7/Data/VehicleTypes.h"
+#include "VehicleInterface.h"
 #include "VehiclePawn.generated.h"
 
-UENUM(BlueprintType)
-enum EDriveTrainType : uint8
-{
-	FWD, 
-	RWD,
-	AWD,
-};
-
-enum EWheelType : uint8
-{
-	None,
-	FrontWheel,
-	RearWheel,
-};
-
-struct FWheelState
-{
-	FString WheelName;
-	FTransform OffsetTransform;
-	bool bGrounded;
-	float DistanceToGround;
-	FVector ContactPointNormal;
-	float SteeringAngle;
-	EWheelType WheelType;
-	bool bDrivingWheel;
-
-	FWheelState()
-	{
-		WheelName = "";
-		OffsetTransform = FTransform();
-		bGrounded = false;
-		DistanceToGround = FLT_MAX;
-		ContactPointNormal = FVector::ZeroVector;
-		SteeringAngle = 0.0f;
-		WheelType = EWheelType::None;
-		bDrivingWheel = false;
-	}
-};
-
 UCLASS()
-class ARCADECARPROJ_5_7_API AVehiclePawn : public APawn
+class ARCADECARPROJ_5_7_API AVehiclePawn : public APawn, public IVehicleInterface
 {
 	GENERATED_BODY()
 
@@ -75,8 +38,8 @@ private:
 	
 public:
 	//Input Related Functions
-	void SetTargetThrottleInput(float ThrottleValue);
-	void SetTargetSteeringValue(float InSteeringValue);
+	virtual void SetTargetThrottleInput(float ThrottleValue) override;
+	virtual void SetTargetSteeringValue(float InSteeringValue) override;
 
 protected:
 	//Vehicle Pawn Components
