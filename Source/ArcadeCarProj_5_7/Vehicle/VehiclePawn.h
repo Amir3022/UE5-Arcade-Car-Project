@@ -21,14 +21,6 @@ enum EWheelType : uint8
 	RearWheel,
 };
 
-enum ETransmissionMode
-{
-	Neutral,
-	Drive,
-	Reverse,
-	Park,
-};
-
 struct FWheelState
 {
 	FString WheelName;
@@ -75,31 +67,16 @@ private:
 	void InitializeAttachedWheels();
 	void CheckGrounding();
 	void ApplySuspensionForces();
-	void UpdateThrottle(float deltaSeconds);
-	void UpdateEngineRPM(float deltaSeconds);
-	void ApplyEngineTorque();
+	void UpdateAndApplyThrottleForce(float deltaSeconds);
 	void DistributeForceToDrivingWheels(float ThrottleForce);
 	void UpdateAndApplySteering(float deltaSeconds);
-	bool IsTransmissionEngaged();
 
+	float GetCurrentForwardSpeedKMH();
+	
 public:
 	//Input Related Functions
 	void SetTargetThrottleInput(float ThrottleValue);
 	void SetTargetSteeringValue(float InSteeringValue);
-	void SetCurrentTransmissionMode(ETransmissionMode InTransmissionMode) { CurrentTransmissionMode = InTransmissionMode; }
-	void DoGearUpShift()
-	{
-		if (CurrentTransmissionMode == ETransmissionMode::Drive && CurrentGearIndex < (GearRatios.Num() - 1))
-			CurrentGearIndex++;
-	}
-	void DoGearDownShift() {
-		if (CurrentTransmissionMode == ETransmissionMode::Drive && CurrentGearIndex > 0)
-			CurrentGearIndex--;
-	}
-
-	//Vehicle Movement Information Functions
-	float GetCurrentForwardSpeedKMH();
-	float GetCurrentRPM();
 
 protected:
 	//Vehicle Pawn Components
@@ -124,27 +101,11 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float ThrottleValueChangeSpeed;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float MaxEngineTorque;
-	UPROPERTY(EditAnywhere, Category = "Throttle")	//X: RPM , Y: Torque 
-	FRuntimeFloatCurve RPMTorqueCurve;
+	float ForwardThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float RevRate;
+	float ReverseThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float EngineFrictionRate;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float IdleRPM;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float RedlineRPM;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	TArray<float> GearRatios;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float ReverseGearRatio;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float FinalDriveTrainRatio;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float DriveTrainEfficiency;
-	UPROPERTY(EditAnywhere, Category = "Throttle")
-	float StandardWheelRadius;
+	float BrakingThrottleStrength;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
 	float MaxForwardSpeed;
 	UPROPERTY(EditAnywhere, Category = "Throttle")
@@ -162,12 +123,9 @@ protected:
 private:
 	//Vehicle Movement Variables
 	TArray<FWheelState> WheelStates;
-	ETransmissionMode CurrentTransmissionMode;
 	bool bIsGrounded;
 	float TargetThrottleValue;
 	float CurrentThrottleValue;
 	float TargetSteeringValue;
 	float CurrentSteeringValue;
-	float CurrentRPM;
-	int32 CurrentGearIndex;
 };
