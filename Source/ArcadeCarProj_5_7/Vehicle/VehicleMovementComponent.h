@@ -34,6 +34,14 @@ private:
     // ── Internal sub-steps ────────────────────────────────────────────────
     void CheckGrounding();
     void UpdateSuspension();
+    void UpdateEngineRPM();
+    void CalculateTorqueAtEachDrivenWheel();
+    void ApplyForceFromWheels();
+    void UpdateWheelsAngularSpeed(float DeltaSeconds);
+    void ApplyAutomaticGearShifting();
+
+    // ── Helper Functions ──────────────────────────────────────────────────
+    bool IsDrivenWheel(const FVehicleWheelState& Wheel);
 
 protected:
     //Vehicle Configuration
@@ -49,6 +57,8 @@ protected:
     EDriveLayout DriveLayout;
     UPROPERTY(EditAnywhere, Category = "Vehicle")
     float MaxBrakingTorque;
+    UPROPERTY(EditAnywhere, Category = "Vehicle")
+    float ThrottleAcceleratingThreshold;
 
 
 private:
@@ -58,10 +68,12 @@ private:
     float SteeringInput; // -1 left … +1 right
     bool  bHandbrake;
 
-    //Movement Related Variables
+    //State Variables
     TObjectPtr<UPrimitiveComponent> Chassis;
     float EngineRPM;
     int32 CurrentGear;     // 0-based index
     float VehicleSpeed;
     bool bIsGrounded;
+    float EffTorqueAtWheel;
+    float EffBrakingTorque;
 };

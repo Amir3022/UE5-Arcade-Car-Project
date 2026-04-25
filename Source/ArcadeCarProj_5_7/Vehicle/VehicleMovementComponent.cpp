@@ -25,6 +25,7 @@ UVehicleMovementComponent::UVehicleMovementComponent()
     COMOffset = FVector(-5.f, 0.f, -10.f);
     DriveLayout = EDriveLayout::RearWheelDrive;
     MaxBrakingTorque = 2000.0f;
+    ThrottleAcceleratingThreshold = 0.5;
 
     //Initializing State Variables
     ThrottleInput = 0.f;
@@ -36,6 +37,8 @@ UVehicleMovementComponent::UVehicleMovementComponent()
     CurrentGear = 0;
     VehicleSpeed = 0.0f;
     bIsGrounded = false;
+    EffTorqueAtWheel = 0.0f;
+    EffBrakingTorque = 0.0f;
 }
 
 void UVehicleMovementComponent::BeginPlay()
@@ -71,7 +74,17 @@ void UVehicleMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTy
     //Check grounding for Each Wheel and if the vehicle is grounded
     CheckGrounding();
     //Update Suspension Forces that lift the car above the ground
-    UpdateSuspension();      
+    UpdateSuspension();     
+    //Update the Current Engine RPM
+    UpdateEngineRPM();
+    //Calculate the Torque transferred from Engine to Each Wheel
+    CalculateTorqueAtEachDrivenWheel();
+    //Apply Longitudinal and Lateral forces from Wheel friction with ground
+    ApplyForceFromWheels();
+    //Update Each Wheel Angular Speed based on all forces applied on it
+    UpdateWheelsAngularSpeed(DeltaTime);
+    //Perform Automatic Gear Shifting When needed
+    ApplyAutomaticGearShifting();
 }
 
 //Check Grounding For each Wheel
@@ -139,5 +152,91 @@ void UVehicleMovementComponent::UpdateSuspension()
             }
         }
     }
+}
+
+//Update the EngineRPM based on Wheels RPM
+void UVehicleMovementComponent::UpdateEngineRPM()
+{
+    float AverageWheelsAngularSpeed = 0.0f;
+    int32 NumOfDrivenWheels = 0;
+    for (const FVehicleWheelState& Wheel : Wheels)
+    {
+        if (IsDrivenWheel(Wheel))
+        {
+            AverageWheelsAngularSpeed += Wheel.WheelAngularSpeed;
+            NumOfDrivenWheels++;
+        }
+    }
+    AverageWheelsAngularSpeed /= NumOfDrivenWheels;
+    EngineRPM = FMath::Clamp((AverageWheelsAngularSpeed * EngineConfig.GearRatios[CurrentGear] * EngineConfig.FinalDrive) / (2 * UE_PI * 60.0f), EngineConfig.IdleRPM, EngineConfig.MaxRPM); //Convert Average Driven Wheels Angular Speed to EngineRPM
+}
+
+void UVehicleMovementComponent::CalculateTorqueAtEachDrivenWheel()
+{
+    //Get Torque Produced by Engine at current RPM
+    float EngineTorque = ThrottleInput * EngineConfig.TorqueCurve.GetRichCurve()->Eval(EngineRPM) * (1 - ThrottleInput) * EngineConfig.EngineBrakeCurve.GetRichCurve()->Eval(EngineRPM);
+    //Calculate Torque delivered to DriveShaft
+    float DriveShaftTorque = EngineTorque * EngineConfig.GearRatios[CurrentGear] * EngineConfig.FinalDrive * EngineConfig.DrivetrainEfficiency;
+    //Calculate the Torque delivered to each driven wheel
+    int32 NumOfDrivenWheels = 0;
+    for (const FVehicleWheelState& Wheel : Wheels)
+    {
+        if (IsDrivenWheel(Wheel))
+        {
+            NumOfDrivenWheels++;
+        }
+    }
+    EffTorqueAtWheel = DriveShaftTorque / NumOfDrivenWheels;
+
+    //Calculate The braking Torque by applying Brake Input to Max Braking Torque
+    EffBrakingTorque = BrakeInput * MaxBrakingTorque;
+}
+
+void UVehicleMovementComponent::ApplyForceFromWheels()
+{
+    if (Chassis)
+    {
+        for (FVehicleWheelState& Wheel : Wheels)
+        {
+            //Get the Force Applied from Ground on contact point
+            FVector UpForce = FMath::Max(Wheel.ContactUpForce, FVector::ZeroVector);
+            //Get Wheel Speed
+            float WheelSpeed = Wheel.WheelAngularSpeed * Wheel.WheelRadius;
+            //Get Vehicle Velocity in the Forward Direction of the Wheel
+        }
+    }
+}
+
+void UVehicleMovementComponent::UpdateWheelsAngularSpeed(float DeltaSeconds)
+{
+
+}
+
+void UVehicleMovementComponent::ApplyAutomaticGearShifting()
+{
+    float UpshiftRPM;
+    float DownshiftRPM;
+    if (ThrottleInput > ThrottleAcceleratingThreshold)
+    {
+        UpshiftRPM = FMath::Lerp(EngineConfig.CruisingUpshiftRPM, EngineConfig.AcceleratingUpshiftRPM, ThrottleInput);
+        DownshiftRPM = FMath::Lerp(EngineConfig.CruisingDownshiftRPM, EngineConfig.AcceleratingDownshiftRPM, ThrottleInput);
+    }
+    else
+    {
+        UpshiftRPM = EngineConfig.CruisingUpshiftRPM;
+        DownshiftRPM = EngineConfig.CruisingDownshiftRPM;
+    }
+
+    if (EngineRPM > UpshiftRPM && CurrentGear < (EngineConfig.GearRatios.Num() - 1))
+        CurrentGear++;
+    else if (EngineRPM < DownshiftRPM and CurrentGear > 0)
+        CurrentGear--;
+}
+
+
+//Helper Functions
+bool UVehicleMovementComponent::IsDrivenWheel(const FVehicleWheelState& Wheel)
+{
+    return DriveLayout == EDriveLayout::AllWheelDrive || (Wheel.bIsFrontWheel && DriveLayout == EDriveLayout::FrontWheelDrive) || (!Wheel.bIsFrontWheel && DriveLayout == EDriveLayout::RearWheelDrive);
 }
 UE_ENABLE_OPTIMIZATION

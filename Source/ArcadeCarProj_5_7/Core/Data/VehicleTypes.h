@@ -65,6 +65,7 @@ struct FVehicleWheelState
     // State Variables
     bool bGrounded;
     float DistanceToGround;
+    float WheelAngularSpeed;
     FVector ContactPointNormal;
     FVector ContactUpForce;
     float SteeringAngle;
@@ -92,6 +93,7 @@ struct FVehicleWheelState
         OffsetTransform = FTransform();
         bGrounded = false;
         DistanceToGround = false;
+        WheelAngularSpeed = 0.0f;
         ContactPointNormal = FVector::UpVector;
         ContactUpForce = FVector::UpVector;
         SteeringAngle = 0.0f;
