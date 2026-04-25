@@ -32,24 +32,8 @@ public:
 
 private:
     // ── Internal sub-steps ────────────────────────────────────────────────
-    void  UpdateSuspension(float DeltaTime);
-    void  UpdateSteeringVectors();
-    void  UpdateWheelAngularVel(FVehicleWheelState& W, float DeltaTime);
-    void  UpdateEngineRPM(float DeltaTime);
-    void  ReconnectDrivenWheels();
-    void  ApplyTireForces();
-    void  ApplyLowSpeedStiction();
-
-    // ── Helpers ───────────────────────────────────────────────────────────
-    FVector GetWheelVelocity(const FVector& WheelWorldPos) const;
-    float   ComputeSlipAngle(const FVehicleWheelState& W, const FVector& WheelVelocity) const;
-    float   ComputeLongSlipRatio(const FVehicleWheelState& W, const FVector& WheelVelocity) const;
-    float   LongFrictionFromSlip(float SlipRatio) const;
-    float   LatFrictionFromAngle(const FVehicleWheelState& W, float SlipAngleDeg) const;
-    bool    IsWheelDriven(const FVehicleWheelState& W) const;
-    float   TotalDriveRatio() const;   // GearRatio * DiffRatio
-    float   ComputeWheelResistanceTorque(const FVehicleWheelState& W) const;
-    float   ComputeEngineBrakeTorque() const;
+    void CheckGrounding();
+    void UpdateSuspension();
 
 protected:
     //Vehicle Configuration
@@ -61,18 +45,23 @@ protected:
     float MaxSteeringAngle;
     UPROPERTY(EditAnywhere, Category = "Vehicle")
     FVector COMOffset;
+    UPROPERTY(EditAnywhere, Category = "Vehicle")
+    EDriveLayout DriveLayout;
+    UPROPERTY(EditAnywhere, Category = "Vehicle")
+    float MaxBrakingTorque;
 
 
 private:
     //Input Related variables
-    float ThrottleInput = 0.f; // 0-1
-    float BrakeInput = 0.f; // 0-1
-    float SteeringInput = 0.f; // -1 left … +1 right
-    bool  bHandbrake = false;
+    float ThrottleInput; // 0-1
+    float BrakeInput; // 0-1
+    float SteeringInput; // -1 left … +1 right
+    bool  bHandbrake;
 
     //Movement Related Variables
     TObjectPtr<UPrimitiveComponent> Chassis;
-    float EngineRPM = 800.f;
-    int32 CurrentGear = 0;     // 0-based index
-    float VehicleSpeed = 0.f;   // m/s	
+    float EngineRPM;
+    int32 CurrentGear;     // 0-based index
+    float VehicleSpeed;
+    bool bIsGrounded;
 };

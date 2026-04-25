@@ -26,78 +26,75 @@ struct FVehicleWheelState
 {
     GENERATED_BODY()
 
-    // ── Identity ──────────────────────────────
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, Category = "Wheel Config")
+    FTransform OffsetTransform;
+    UPROPERTY(EditAnywhere, Category = "Wheel Config")
     bool bIsFrontWheel;
-    UPROPERTY(EditAnywhere)
-    bool bIsLeftWheel;
+    UPROPERTY(EditAnywhere, Category = "Wheel Config")
+    float WheelRadius;
+    UPROPERTY(EditAnywhere, Category = "Wheel Config")
+    float WheelInertia;
 
-    // ── Suspension ────────────────────────────
-    UPROPERTY(EditAnywhere)
-    FVector SuspensionOffset;
+    UPROPERTY(EditAnywhere, Category = "Suspension")
+    float GroundCheckTolerance;
+    UPROPERTY(EditAnywhere, Category = "Suspension")
+    float SpringRestLength;
+    UPROPERTY(EditAnywhere, Category = "Suspension")
+    float SpringStiffness;
+    UPROPERTY(EditAnywhere, Category = "Suspension")
+    float SpringDamping;
 
-    UPROPERTY(EditAnywhere)
-    float SpringStiffness;  // N/m
-    UPROPERTY(EditAnywhere)
-    float DamperCoeff;   // N·s/m
-    UPROPERTY(EditAnywhere)
-    float RestLength;    // m
-    UPROPERTY(EditAnywhere)
-    float MinLength;    // m
-    UPROPERTY(EditAnywhere)
-    float MaxLength;    // m
+    UPROPERTY(EditAnywhere, Category = "Longitudinal Force")
+    float miuLongPeak;   //Peak Longitudinal Friction
+    UPROPERTY(EditAnywhere, Category = "Longitudinal Force")
+    float miuLongSlide;   //Sliding Longitudinal Friction
+    UPROPERTY(EditAnywhere, Category = "Longitudinal Force")
+    float SlipRatioPeak;   //Slip Ratio At Peak Force
+    UPROPERTY(EditAnywhere, Category = "Longitudinal Force")
+    float SlipRatioLongRange;    //Slip range over which force drops to sliding; used to compute FalloffRate_x
 
-    // ── Geometry ──────────────────────────────
-    UPROPERTY(EditAnywhere)
-    float WheelRadius;   // m
-    UPROPERTY(EditAnywhere)
-    float WheelInertia;    // kg·m²
+    UPROPERTY(EditAnywhere, Category = "Lateral Force")
+    float miuLatPeak;   //Peak Lateral Friction
+    UPROPERTY(EditAnywhere, Category = "Lateral Force")
+    float miuLatSlide;   //Sliding Lateral Friction
+    UPROPERTY(EditAnywhere, Category = "Lateral Force")
+    float SlipAnglePeak;   //Slip Angle At Peak Force
+    UPROPERTY(EditAnywhere, Category = "Lateral Force")
+    float SlipAngleLatRange;    //Angle range over which force drops to sliding; derives FalloffRate_y
 
-    // ── Grip curve ────────────────────────────
-    UPROPERTY(EditAnywhere)
-    FRuntimeFloatCurve LateralGripCurve;
-
-    // ── Frame state (written every tick) ──────
-    bool bIsGrounded;
-    FVector ContactPoint;
-    FVector ContactNormal;
-    float SuspensionCompression;     // current compression  (m)
-    float PrevSuspensionComp;     // previous frame compression (for damper)
-    float NormalForce;     // N  (spring + damper resultant)
-
-    float WheelAngularVelocity;     // rad/s  (positive = forward)
-    float WheelRPM;
-    bool bIsLocked;
-
-    FVector WheelForwardVector;
-    FVector WheelRightVector;
+    // State Variables
+    bool bGrounded;
+    float DistanceToGround;
+    FVector ContactPointNormal;
+    FVector ContactUpForce;
+    float SteeringAngle;
 
     FVehicleWheelState()
     {
         //Initialize Editable Variables
         bIsFrontWheel = false;
-        bIsLeftWheel = false;
-        SuspensionOffset = FVector::ZeroVector;
-        SpringStiffness = 35000.f;
-        DamperCoeff = 4000.f; 
-        RestLength = 0.45f;   
-        MinLength = 0.15f;    
-        MaxLength = 0.60f;    
-        WheelRadius = 0.33f;  
-        WheelInertia = 0.9f;  
+        WheelRadius = 0.35f;
+        WheelInertia = 1.5f;
+        GroundCheckTolerance = 5.0f;
+        SpringRestLength = 30.0f;
+        SpringStiffness = 50000.0f;
+        SpringDamping = 7000.0f;
+        miuLongPeak = 0.9f;  
+        miuLongSlide = 0.75f; 
+        SlipRatioPeak = 0.1f;
+        SlipRatioLongRange = 0.2f;
+        miuLatPeak = 0.95f;  
+        miuLatSlide = 0.8f;  
+        SlipAnglePeak = 0.14f;
+        SlipAngleLatRange = 0.1f;  
 
         //Initializing state Variables
-        bIsGrounded = false;
-        ContactPoint = FVector::ZeroVector;
-        ContactNormal = FVector::UpVector;
-        SuspensionCompression = 0.0f;
-        PrevSuspensionComp = 0.0f;
-        NormalForce = 0.0f;
-        WheelAngularVelocity = 0.0f;
-        WheelRPM = 0.0f;
-        bIsLocked = false;
-        WheelForwardVector = FVector::ForwardVector;
-        WheelRightVector = FVector::RightVector;
+        OffsetTransform = FTransform();
+        bGrounded = false;
+        DistanceToGround = false;
+        ContactPointNormal = FVector::UpVector;
+        ContactUpForce = FVector::UpVector;
+        SteeringAngle = 0.0f;
     }
 };
 
@@ -106,59 +103,41 @@ struct FVehicleEngineConfig
 {
     GENERATED_BODY()
 
-    /** Maps RPM → peak torque (Nm).  Throttle scales this linearly. */
-    UPROPERTY(EditAnywhere)
+    //Tuning Variables
+    UPROPERTY(EditAnywhere, Category = "Engine Block")
     FRuntimeFloatCurve TorqueCurve;
-
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, Category = "Engine Block")
+    FRuntimeFloatCurve EngineBrakeCurve;
+    UPROPERTY(EditAnywhere, Category = "Engine Block")
     float IdleRPM;
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, Category = "Engine Block")
     float MaxRPM;
-    UPROPERTY(EditAnywhere)
-    float EngineInertia;   // kg·m²
-    UPROPERTY(EditAnywhere)
-    float DrivetrainEfficiency;   // 0-1
-    UPROPERTY(EditAnywhere)
-    float DifferentialRatio;
-
-    /** Gear ratios: index 0 = 1st gear */
-    UPROPERTY(EditAnywhere)
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
     TArray<float> GearRatios;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float FinalDrive;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float DrivetrainEfficiency;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float CruisingUpshiftRPM;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float AcceleratingUpshiftRPM;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float CruisingDownshiftRPM;
+    UPROPERTY(EditAnywhere, Category = "Gearbox")
+    float AcceleratingDownshiftRPM;
 
-    UPROPERTY(EditAnywhere)
-    float MaxBrakeTorque;  // Nm total
-    UPROPERTY(EditAnywhere)
-    float FrontBrakeBias;   // fraction going to front
-    UPROPERTY(EditAnywhere)
-    float MuPeak;    // peak long friction coeff
-    UPROPERTY(EditAnywhere)
-    float MuKinetic;   // locked-wheel friction coeff
-    UPROPERTY(EditAnywhere)
-    float RollingResistanceCoeff;  // Crr
-    UPROPERTY(EditAnywhere)
-    float AeroDragCoeff;   // Cd
-    UPROPERTY(EditAnywhere)
-    float FrontalArea;    // m²
-
-    UPROPERTY(EditAnywhere)
-    EDriveLayout DriveLayout;
 
     FVehicleEngineConfig()
     {
-        //Initializing Editable Variables
-        IdleRPM = 800.0f;
-        MaxRPM = 7000.0f;
-        EngineInertia = 0.2f;
+        IdleRPM = 900.0f;
+        MaxRPM = 8000.0f;
+        GearRatios = { 3.5f, 2.4f, 1.8f, 1.3f, 1.0f, 0.8f };
+        FinalDrive = 3.7f;
         DrivetrainEfficiency = 0.85f;
-        DifferentialRatio = 3.7f;
-        GearRatios = { 3.5f, 2.1f, 1.4f, 1.0f, 0.75 };
-        MaxBrakeTorque = 4000.f;
-        FrontBrakeBias = 0.70f;
-        MuPeak = 1.2f;    
-        MuKinetic = 0.75f;
-        RollingResistanceCoeff = 0.015f;
-        AeroDragCoeff = 0.35f;
-        FrontalArea = 2.2f;
-        DriveLayout = EDriveLayout::RearWheelDrive;
+        CruisingUpshiftRPM = 3000.0f;
+        AcceleratingUpshiftRPM = 6500.f;
+        CruisingDownshiftRPM = 1500.0f;
+        AcceleratingDownshiftRPM = 3000.0f;
     }
 };
