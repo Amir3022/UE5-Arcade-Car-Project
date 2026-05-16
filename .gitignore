@@ -80,3 +80,8 @@ Engine/Programs/UnrealBuildTool/*
 *.DS_Store
 Packaged/
 enc_temp_folder/
+
+# Ignored files related to usage of VSCode
+.Ignore
+.vsconfig/
+*.code-workspace
